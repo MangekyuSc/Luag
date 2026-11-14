@@ -1,0 +1,350 @@
+
+--[[
+    ELYSIUM LOADER v3.2
+    CRIMSON EDITION
+    FULL BLACKSCREEN + ZINDEX FIX
+    VISUAL LOADING UI ONLY
+]]
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+local RED = Color3.fromRGB(255, 23, 68)
+local DARK_RED = Color3.fromRGB(90, 0, 24)
+local BLACK = Color3.fromRGB(0, 0, 0)
+local TEXT = Color3.fromRGB(190, 145, 160)
+
+-- HIDE ROBLOX CORE GUI
+pcall(function()
+    StarterGui:SetCoreGuiEnabled(
+        Enum.CoreGuiType.All,
+        false
+    )
+end)
+
+-- SCREEN GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "ElysiumCrimson"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 999999
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+gui.Parent = PlayerGui
+
+-- CREATION FUNCTION
+local function create(class, props, parent)
+    local obj = Instance.new(class)
+
+    for k, v in pairs(props) do
+        obj[k] = v
+    end
+
+    if obj:IsA("GuiObject") then
+        obj.ZIndex = 3
+    end
+
+    obj.Parent = parent
+    return obj
+end
+
+-- FULLSCREEN BLACK OVERLAY
+local overlay = create("Frame", {
+    Name = "BlackOverlay",
+    Size = UDim2.fromScale(1, 1),
+    Position = UDim2.fromScale(0, 0),
+    BackgroundColor3 = BLACK,
+    BackgroundTransparency = 0,
+    BorderSizePixel = 0,
+    ZIndex = 0
+}, gui)
+
+-- MAIN PANEL
+local main = create("Frame", {
+    Name = "MainPanel",
+    Size = UDim2.new(0.55, 0, 0.74, 0),
+    Position = UDim2.fromScale(0.5, 0.5),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    BackgroundColor3 = Color3.fromRGB(5, 3, 6),
+    BorderSizePixel = 0,
+    ZIndex = 2
+}, gui)
+
+create("UICorner", {
+    CornerRadius = UDim.new(0, 30)
+}, main)
+
+create("UIStroke", {
+    Color = DARK_RED,
+    Thickness = 2
+}, main)
+
+-- TITLE
+create("TextLabel", {
+    Size = UDim2.new(0.65, 0, 0.09, 0),
+    Position = UDim2.new(0.09, 0, 0.035, 0),
+    BackgroundTransparency = 1,
+    Text = "BIGFOOT",
+    TextColor3 = Color3.fromRGB(255, 245, 248),
+    Font = Enum.Font.GothamBold,
+    TextScaled = true,
+    TextXAlignment = Enum.TextXAlignment.Left
+}, main)
+
+-- SUBTITLE
+local subtitle = create("TextLabel", {
+    Size = UDim2.new(0.28, 0, 0.045, 0),
+    Position = UDim2.new(0.09, 0, 0.12, 0),
+    BackgroundColor3 = DARK_RED,
+    Text = "LOADING SCRIPT...",
+    TextColor3 = Color3.fromRGB(255, 180, 195),
+    Font = Enum.Font.GothamBold,
+    TextScaled = true
+}, main)
+
+create("UICorner", {
+    CornerRadius = UDim.new(0, 7)
+}, subtitle)
+
+-- PLAYER AVATAR
+local avatar = create("ImageLabel", {
+    Size = UDim2.fromOffset(85, 85),
+    Position = UDim2.new(1, -110, 0, 15),
+    BackgroundColor3 = DARK_RED,
+    Image = "",
+    ScaleType = Enum.ScaleType.Crop
+}, main)
+
+create("UICorner", {
+    CornerRadius = UDim.new(1, 0)
+}, avatar)
+
+create("UIStroke", {
+    Color = RED,
+    Thickness = 3
+}, avatar)
+
+task.spawn(function()
+    local success, image = pcall(function()
+        return Players:GetUserThumbnailAsync(
+            Player.UserId,
+            Enum.ThumbnailType.HeadShot,
+            Enum.ThumbnailSize.Size150x150
+        )
+    end)
+
+    if success and gui.Parent then
+        avatar.Image = image
+    end
+end)
+
+-- DIVIDER
+create("Frame", {
+    Size = UDim2.new(0.92, 0, 0, 1),
+    Position = UDim2.new(0.04, 0, 0.19, 0),
+    BackgroundColor3 = DARK_RED,
+    BorderSizePixel = 0
+}, main)
+
+-- STATUS
+local status = create("TextLabel", {
+    Size = UDim2.new(0.75, 0, 0.06, 0),
+    Position = UDim2.new(0.04, 0, 0.215, 0),
+    BackgroundTransparency = 1,
+    Text = "Initializing Elysium...",
+    TextColor3 = TEXT,
+    Font = Enum.Font.Gotham,
+    TextScaled = true,
+    TextXAlignment = Enum.TextXAlignment.Left
+}, main)
+
+local percentage = create("TextLabel", {
+    Size = UDim2.new(0.15, 0, 0.06, 0),
+    Position = UDim2.new(0.81, 0, 0.215, 0),
+    BackgroundTransparency = 1,
+    Text = "0.0%",
+    TextColor3 = RED,
+    Font = Enum.Font.GothamBold,
+    TextScaled = true
+}, main)
+
+-- PROGRESS BAR BACKGROUND
+local barBG = create("Frame", {
+    Size = UDim2.new(0.92, 0, 0, 10),
+    Position = UDim2.new(0.04, 0, 0.285, 0),
+    BackgroundColor3 = Color3.fromRGB(35, 5, 14),
+    BorderSizePixel = 0
+}, main)
+
+create("UICorner", {
+    CornerRadius = UDim.new(1, 0)
+}, barBG)
+
+-- PROGRESS BAR
+local bar = create("Frame", {
+    Size = UDim2.new(0, 0, 1, 0),
+    BackgroundColor3 = RED,
+    BorderSizePixel = 0
+}, barBG)
+
+create("UICorner", {
+    CornerRadius = UDim.new(1, 0)
+}, bar)
+
+-- TERMINAL
+local terminal = create("Frame", {
+    Size = UDim2.new(0.92, 0, 0.44, 0),
+    Position = UDim2.new(0.04, 0, 0.325, 0),
+    BackgroundColor3 = Color3.fromRGB(8, 5, 10),
+    BorderSizePixel = 0
+}, main)
+
+create("UICorner", {
+    CornerRadius = UDim.new(0, 15)
+}, terminal)
+
+create("UIStroke", {
+    Color = DARK_RED,
+    Thickness = 1.5
+}, terminal)
+
+create("UIListLayout", {
+    Padding = UDim.new(0, 7),
+    SortOrder = Enum.SortOrder.LayoutOrder
+}, terminal)
+
+create("UIPadding", {
+    PaddingTop = UDim.new(0, 15),
+    PaddingLeft = UDim.new(0, 15)
+}, terminal)
+
+-- LOGS
+local logs = {
+    "Enumerating modules...",
+    "Initializing interface...",
+    "Checking client components...",
+    "Loading configuration...",
+    "Preparing environment...",
+    "Verifying initialization...",
+    "Finalizing components..."
+}
+
+local function addLog(message)
+    create("TextLabel", {
+        Size = UDim2.new(1, -5, 0, 23),
+        BackgroundTransparency = 1,
+        Text = "> " .. message,
+        TextColor3 = TEXT,
+        Font = Enum.Font.Code,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, terminal)
+end
+
+-- LOADING ANIMATION
+local duration = math.random(120, 180)
+local startTime = os.clock()
+local nextLog = 1
+
+addLog("Starting Elysium loader...")
+
+while gui.Parent do
+    local elapsed = os.clock() - startTime
+    local progress = math.clamp(elapsed / duration, 0, 1)
+
+    percentage.Text = string.format(
+        "%.1f%%",
+        progress * 100
+    )
+
+    TweenService:Create(
+        bar,
+        TweenInfo.new(0.15),
+        {
+            Size = UDim2.new(progress, 0, 1, 0)
+        }
+    ):Play()
+
+    if nextLog <= #logs
+        and progress >= nextLog / (#logs + 1) then
+
+        addLog(logs[nextLog])
+        nextLog += 1
+    end
+
+    if progress >= 1 then
+        break
+    end
+
+    task.wait(0.1)
+end
+
+-- COMPLETE
+status.Text = "Initialization complete."
+percentage.Text = "100.0%"
+
+addLog("ELYSIUM INITIALIZATION COMPLETE")
+
+TweenService:Create(
+    bar,
+    TweenInfo.new(0.5),
+    {
+        BackgroundColor3 = Color3.fromRGB(255, 80, 100)
+    }
+):Play()
+
+task.wait(3)
+
+-- FADE OUT
+for _, obj in ipairs(gui:GetDescendants()) do
+    if obj:IsA("Frame") then
+        TweenService:Create(
+            obj,
+            TweenInfo.new(0.6),
+            {BackgroundTransparency = 1}
+        ):Play()
+
+    elseif obj:IsA("TextLabel") then
+        TweenService:Create(
+            obj,
+            TweenInfo.new(0.6),
+            {TextTransparency = 1}
+        ):Play()
+
+    elseif obj:IsA("ImageLabel") then
+        TweenService:Create(
+            obj,
+            TweenInfo.new(0.6),
+            {ImageTransparency = 1}
+        ):Play()
+    end
+end
+
+task.wait(0.7)
+
+gui:Destroy()
+
+-- RESTORE ROBLOX CORE GUI
+pcall(function()
+    StarterGui:SetCoreGuiEnabled(
+        Enum.CoreGuiType.All,
+        true
+    )
+end)
+
+-- LOAD BFLOADER AFTER ELYSIUM COMPLETES
+local success, err = pcall(function()
+    local url = "https://raw.githubusercontent.com/hanniii1/Loader/refs/heads/main/BFLoader.lua"
+
+    local source = game:HttpGet(url)
+    local loader = assert(loadstring(source), "BFLoader compilation failed")
+
+    loader()
+end)
+
+if not success then
+    warn("[ELYSIUM] BFLoader error:", err)
+end

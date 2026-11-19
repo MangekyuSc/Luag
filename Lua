@@ -1,350 +1,420 @@
-
 --[[
-    ELYSIUM LOADER v3.2
-    CRIMSON EDITION
-    FULL BLACKSCREEN + ZINDEX FIX
-    VISUAL LOADING UI ONLY
+NOVA LOADER | ORANGE EDITION
+SHARP UI | THIN PROGRESS BAR
+Delta Executor Script
 ]]
 
 local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
-local StarterGui = game:GetService("StarterGui")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
-local RED = Color3.fromRGB(255, 23, 68)
-local DARK_RED = Color3.fromRGB(90, 0, 24)
-local BLACK = Color3.fromRGB(0, 0, 0)
-local TEXT = Color3.fromRGB(190, 145, 160)
+local function GetGuiParent()
+	if typeof(gethui) == "function" then
+		local ok, hui = pcall(gethui)
+		if ok and hui then
+			return hui
+		end
+	end
 
--- HIDE ROBLOX CORE GUI
-pcall(function()
-    StarterGui:SetCoreGuiEnabled(
-        Enum.CoreGuiType.All,
-        false
-    )
-end)
+	local okCore, core = pcall(function()
+		return CoreGui
+	end)
+	if okCore and core then
+		return core
+	end
 
--- SCREEN GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "ElysiumCrimson"
-gui.IgnoreGuiInset = true
-gui.ResetOnSpawn = false
-gui.DisplayOrder = 999999
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-gui.Parent = PlayerGui
-
--- CREATION FUNCTION
-local function create(class, props, parent)
-    local obj = Instance.new(class)
-
-    for k, v in pairs(props) do
-        obj[k] = v
-    end
-
-    if obj:IsA("GuiObject") then
-        obj.ZIndex = 3
-    end
-
-    obj.Parent = parent
-    return obj
+	return PlayerGui
 end
 
--- FULLSCREEN BLACK OVERLAY
-local overlay = create("Frame", {
-    Name = "BlackOverlay",
-    Size = UDim2.fromScale(1, 1),
-    Position = UDim2.fromScale(0, 0),
-    BackgroundColor3 = BLACK,
-    BackgroundTransparency = 0,
-    BorderSizePixel = 0,
-    ZIndex = 0
-}, gui)
+local GuiParent = GetGuiParent()
 
--- MAIN PANEL
-local main = create("Frame", {
-    Name = "MainPanel",
-    Size = UDim2.new(0.55, 0, 0.74, 0),
-    Position = UDim2.fromScale(0.5, 0.5),
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundColor3 = Color3.fromRGB(5, 3, 6),
-    BorderSizePixel = 0,
-    ZIndex = 2
-}, gui)
+local ORANGE = Color3.fromRGB(255, 140, 25)
+local ORANGE_LIGHT = Color3.fromRGB(255, 175, 65)
+local BLACK = Color3.fromRGB(10, 10, 12)
+local PANEL = Color3.fromRGB(17, 17, 21)
+local GRAY = Color3.fromRGB(75, 75, 85)
+local WHITE = Color3.fromRGB(240, 240, 245)
 
-create("UICorner", {
-    CornerRadius = UDim.new(0, 30)
-}, main)
+local DURATION = 75
+local FINAL_PHASE = 10
 
-create("UIStroke", {
-    Color = DARK_RED,
-    Thickness = 2
-}, main)
+local Old = GuiParent:FindFirstChild("NOVA_LOADER")
+if Old then
+	Old:Destroy()
+end
 
--- TITLE
-create("TextLabel", {
-    Size = UDim2.new(0.65, 0, 0.09, 0),
-    Position = UDim2.new(0.09, 0, 0.035, 0),
-    BackgroundTransparency = 1,
-    Text = "BIGFOOT",
-    TextColor3 = Color3.fromRGB(255, 245, 248),
-    Font = Enum.Font.GothamBold,
-    TextScaled = true,
-    TextXAlignment = Enum.TextXAlignment.Left
-}, main)
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "NOVA_LOADER"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.DisplayOrder = 100
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = GuiParent
 
--- SUBTITLE
-local subtitle = create("TextLabel", {
-    Size = UDim2.new(0.28, 0, 0.045, 0),
-    Position = UDim2.new(0.09, 0, 0.12, 0),
-    BackgroundColor3 = DARK_RED,
-    Text = "LOADING SCRIPT...",
-    TextColor3 = Color3.fromRGB(255, 180, 195),
-    Font = Enum.Font.GothamBold,
-    TextScaled = true
-}, main)
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.fromScale(0.5, 0.5)
+Main.Size = UDim2.fromOffset(560, 340)
+Main.BackgroundColor3 = PANEL
+Main.BorderSizePixel = 0
+Main.Parent = Gui
 
-create("UICorner", {
-    CornerRadius = UDim.new(0, 7)
-}, subtitle)
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 6)
 
--- PLAYER AVATAR
-local avatar = create("ImageLabel", {
-    Size = UDim2.fromOffset(85, 85),
-    Position = UDim2.new(1, -110, 0, 15),
-    BackgroundColor3 = DARK_RED,
-    Image = "",
-    ScaleType = Enum.ScaleType.Crop
-}, main)
+local Border = Instance.new("UIStroke")
+Border.Color = ORANGE
+Border.Thickness = 1
+Border.Transparency = 0.1
+Border.Parent = Main
 
-create("UICorner", {
-    CornerRadius = UDim.new(1, 0)
-}, avatar)
+local UIScale = Instance.new("UIScale")
+UIScale.Parent = Main
 
-create("UIStroke", {
-    Color = RED,
-    Thickness = 3
-}, avatar)
+local function UpdateScale()
+	local Camera = workspace.CurrentCamera
+	if not Camera then return end
 
-task.spawn(function()
-    local success, image = pcall(function()
-        return Players:GetUserThumbnailAsync(
-            Player.UserId,
-            Enum.ThumbnailType.HeadShot,
-            Enum.ThumbnailSize.Size150x150
-        )
-    end)
+	local View = Camera.ViewportSize
+	UIScale.Scale = math.clamp(
+		math.min(View.X / 600, View.Y / 390),
+		0.5,
+		1
+	)
+end
 
-    if success and gui.Parent then
-        avatar.Image = image
-    end
-end)
+UpdateScale()
 
--- DIVIDER
-create("Frame", {
-    Size = UDim2.new(0.92, 0, 0, 1),
-    Position = UDim2.new(0.04, 0, 0.19, 0),
-    BackgroundColor3 = DARK_RED,
-    BorderSizePixel = 0
-}, main)
+if workspace.CurrentCamera then
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateScale)
+end
 
--- STATUS
-local status = create("TextLabel", {
-    Size = UDim2.new(0.75, 0, 0.06, 0),
-    Position = UDim2.new(0.04, 0, 0.215, 0),
-    BackgroundTransparency = 1,
-    Text = "Initializing Elysium...",
-    TextColor3 = TEXT,
-    Font = Enum.Font.Gotham,
-    TextScaled = true,
-    TextXAlignment = Enum.TextXAlignment.Left
-}, main)
+-- Header
+local Header = Instance.new("Frame")
+Header.Position = UDim2.new(0, 18, 0, 15)
+Header.Size = UDim2.new(1, -36, 0, 52)
+Header.BackgroundTransparency = 1
+Header.Parent = Main
 
-local percentage = create("TextLabel", {
-    Size = UDim2.new(0.15, 0, 0.06, 0),
-    Position = UDim2.new(0.81, 0, 0.215, 0),
-    BackgroundTransparency = 1,
-    Text = "0.0%",
-    TextColor3 = RED,
-    Font = Enum.Font.GothamBold,
-    TextScaled = true
-}, main)
+local Logo = Instance.new("TextLabel")
+Logo.Size = UDim2.fromOffset(48, 48)
+Logo.BackgroundTransparency = 1
+Logo.Text = "✦"
+Logo.TextColor3 = ORANGE
+Logo.Font = Enum.Font.GothamBold
+Logo.TextSize = 38
+Logo.Parent = Header
 
--- PROGRESS BAR BACKGROUND
-local barBG = create("Frame", {
-    Size = UDim2.new(0.92, 0, 0, 10),
-    Position = UDim2.new(0.04, 0, 0.285, 0),
-    BackgroundColor3 = Color3.fromRGB(35, 5, 14),
-    BorderSizePixel = 0
-}, main)
+local Title = Instance.new("TextLabel")
+Title.Position = UDim2.new(0, 55, 0, 0)
+Title.Size = UDim2.new(0, 190, 0, 32)
+Title.BackgroundTransparency = 1
+Title.Text = "BIGFROOT"
+Title.TextColor3 = WHITE
+Title.Font = Enum.Font.GothamBlack
+Title.TextSize = 27
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
 
-create("UICorner", {
-    CornerRadius = UDim.new(1, 0)
-}, barBG)
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Position = UDim2.new(0, 58, 0, 30)
+Subtitle.Size = UDim2.new(0, 170, 0, 18)
+Subtitle.BackgroundTransparency = 1
+Subtitle.Text = "L O A D E R"
+Subtitle.TextColor3 = ORANGE
+Subtitle.Font = Enum.Font.GothamBold
+Subtitle.TextSize = 11
+Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.Parent = Header
 
--- PROGRESS BAR
-local bar = create("Frame", {
-    Size = UDim2.new(0, 0, 1, 0),
-    BackgroundColor3 = RED,
-    BorderSizePixel = 0
-}, barBG)
+local HeaderText = Instance.new("TextLabel")
+HeaderText.AnchorPoint = Vector2.new(1, 0)
+HeaderText.Position = UDim2.new(1, 0, 0, 10)
+HeaderText.Size = UDim2.new(0.48, 0, 0, 25)
+HeaderText.BackgroundTransparency = 1
+HeaderText.Text = "PREPARING YOUR EXPERIENCE..."
+HeaderText.TextColor3 = Color3.fromRGB(160, 160, 170)
+HeaderText.Font = Enum.Font.GothamBold
+HeaderText.TextSize = 10
+HeaderText.TextXAlignment = Enum.TextXAlignment.Right
+HeaderText.Parent = Header
 
-create("UICorner", {
-    CornerRadius = UDim.new(1, 0)
-}, bar)
+-- Divider
+local Divider = Instance.new("Frame")
+Divider.Position = UDim2.new(0, 18, 0, 76)
+Divider.Size = UDim2.new(1, -36, 0, 1)
+Divider.BackgroundColor3 = ORANGE
+Divider.BackgroundTransparency = 0.45
+Divider.BorderSizePixel = 0
+Divider.Parent = Main
 
--- TERMINAL
-local terminal = create("Frame", {
-    Size = UDim2.new(0.92, 0, 0.44, 0),
-    Position = UDim2.new(0.04, 0, 0.325, 0),
-    BackgroundColor3 = Color3.fromRGB(8, 5, 10),
-    BorderSizePixel = 0
-}, main)
+-- Progress section
+local Progress = Instance.new("Frame")
+Progress.Position = UDim2.new(0, 35, 0, 102)
+Progress.Size = UDim2.new(1, -70, 0, 60)
+Progress.BackgroundTransparency = 1
+Progress.Parent = Main
 
-create("UICorner", {
-    CornerRadius = UDim.new(0, 15)
-}, terminal)
-
-create("UIStroke", {
-    Color = DARK_RED,
-    Thickness = 1.5
-}, terminal)
-
-create("UIListLayout", {
-    Padding = UDim.new(0, 7),
-    SortOrder = Enum.SortOrder.LayoutOrder
-}, terminal)
-
-create("UIPadding", {
-    PaddingTop = UDim.new(0, 15),
-    PaddingLeft = UDim.new(0, 15)
-}, terminal)
-
--- LOGS
-local logs = {
-    "Enumerating modules...",
-    "Initializing interface...",
-    "Checking client components...",
-    "Loading configuration...",
-    "Preparing environment...",
-    "Verifying initialization...",
-    "Finalizing components..."
+local StepNames = {
+	"Loading Assets",
+	"Setting Up",
+	"Preparing",
+	"Finalizing"
 }
 
-local function addLog(message)
-    create("TextLabel", {
-        Size = UDim2.new(1, -5, 0, 23),
-        BackgroundTransparency = 1,
-        Text = "> " .. message,
-        TextColor3 = TEXT,
-        Font = Enum.Font.Code,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left
-    }, terminal)
+local Steps = {}
+
+for i = 1, 3 do
+	local Line = Instance.new("Frame")
+	Line.Position = UDim2.new((i - 1) / 3, 14, 0, 13)
+	Line.Size = UDim2.new(1 / 3, -28, 0, 2)
+	Line.BackgroundColor3 = GRAY
+	Line.BorderSizePixel = 0
+	Line.Parent = Progress
+
+	local Fill = Instance.new("Frame")
+	Fill.Size = UDim2.new(0, 0, 1, 0)
+	Fill.BackgroundColor3 = ORANGE
+	Fill.BorderSizePixel = 0
+	Fill.Parent = Line
+
+	Steps[i] = { Fill = Fill }
 end
 
--- LOADING ANIMATION
-local duration = math.random(120, 180)
-local startTime = os.clock()
-local nextLog = 1
+for i, Name in ipairs(StepNames) do
+	local Circle = Instance.new("Frame")
+	Circle.Size = UDim2.fromOffset(25, 25)
+	Circle.AnchorPoint = Vector2.new(0.5, 0)
+	Circle.Position = UDim2.new((i - 1) / 3, 0, 0, 0)
+	Circle.BackgroundColor3 = BLACK
+	Circle.BorderSizePixel = 0
+	Circle.Parent = Progress
 
-addLog("Starting Elysium loader...")
+	Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
 
-while gui.Parent do
-    local elapsed = os.clock() - startTime
-    local progress = math.clamp(elapsed / duration, 0, 1)
+	local Stroke = Instance.new("UIStroke")
+	Stroke.Color = GRAY
+	Stroke.Thickness = 1.5
+	Stroke.Parent = Circle
 
-    percentage.Text = string.format(
-        "%.1f%%",
-        progress * 100
-    )
+	local Check = Instance.new("TextLabel")
+	Check.Size = UDim2.fromScale(1, 1)
+	Check.BackgroundTransparency = 1
+	Check.Text = ""
+	Check.TextColor3 = WHITE
+	Check.Font = Enum.Font.GothamBold
+	Check.TextSize = 15
+	Check.Parent = Circle
 
-    TweenService:Create(
-        bar,
-        TweenInfo.new(0.15),
-        {
-            Size = UDim2.new(progress, 0, 1, 0)
-        }
-    ):Play()
+	local Label = Instance.new("TextLabel")
+	Label.AnchorPoint = Vector2.new(0.5, 0)
+	Label.Position = UDim2.new((i - 1) / 3, 0, 0, 32)
+	Label.Size = UDim2.fromOffset(85, 24)
+	Label.BackgroundTransparency = 1
+	Label.Text = Name
+	Label.TextColor3 = Color3.fromRGB(140, 140, 150)
+	Label.Font = Enum.Font.Gotham
+	Label.TextSize = 9
+	Label.Parent = Progress
 
-    if nextLog <= #logs
-        and progress >= nextLog / (#logs + 1) then
-
-        addLog(logs[nextLog])
-        nextLog += 1
-    end
-
-    if progress >= 1 then
-        break
-    end
-
-    task.wait(0.1)
+	Steps[i] = Steps[i] or {}
+	Steps[i].Circle = Circle
+	Steps[i].Stroke = Stroke
+	Steps[i].Check = Check
+	Steps[i].Label = Label
 end
 
--- COMPLETE
-status.Text = "Initialization complete."
-percentage.Text = "100.0%"
+-- Thin progress bar
+local BarBack = Instance.new("Frame")
+BarBack.Position = UDim2.new(0, 25, 0, 190)
+BarBack.Size = UDim2.new(1, -100, 0, 5)
+BarBack.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+BarBack.BorderSizePixel = 0
+BarBack.Parent = Main
 
-addLog("ELYSIUM INITIALIZATION COMPLETE")
+Instance.new("UICorner", BarBack).CornerRadius = UDim.new(0, 2)
 
-TweenService:Create(
-    bar,
-    TweenInfo.new(0.5),
-    {
-        BackgroundColor3 = Color3.fromRGB(255, 80, 100)
-    }
-):Play()
+local BarOutline = Instance.new("UIStroke")
+BarOutline.Color = GRAY
+BarOutline.Thickness = 0.7
+BarOutline.Parent = BarBack
 
-task.wait(3)
+local BarFill = Instance.new("Frame")
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+BarFill.BackgroundColor3 = ORANGE
+BarFill.BorderSizePixel = 0
+BarFill.Parent = BarBack
 
--- FADE OUT
-for _, obj in ipairs(gui:GetDescendants()) do
-    if obj:IsA("Frame") then
-        TweenService:Create(
-            obj,
-            TweenInfo.new(0.6),
-            {BackgroundTransparency = 1}
-        ):Play()
+Instance.new("UICorner", BarFill).CornerRadius = UDim.new(0, 2)
 
-    elseif obj:IsA("TextLabel") then
-        TweenService:Create(
-            obj,
-            TweenInfo.new(0.6),
-            {TextTransparency = 1}
-        ):Play()
+local Percent = Instance.new("TextLabel")
+Percent.Position = UDim2.new(1, -65, 0, 181)
+Percent.Size = UDim2.new(0, 55, 0, 30)
+Percent.BackgroundTransparency = 1
+Percent.Text = "0%"
+Percent.TextColor3 = ORANGE
+Percent.Font = Enum.Font.GothamBold
+Percent.TextSize = 17
+Percent.Parent = Main
 
-    elseif obj:IsA("ImageLabel") then
-        TweenService:Create(
-            obj,
-            TweenInfo.new(0.6),
-            {ImageTransparency = 1}
-        ):Play()
-    end
+-- Bottom message
+local Info = Instance.new("Frame")
+Info.Position = UDim2.new(0.17, 0, 0, 225)
+Info.Size = UDim2.new(0.66, 0, 0, 42)
+Info.BackgroundColor3 = BLACK
+Info.BorderSizePixel = 0
+Info.Parent = Main
+
+Instance.new("UICorner", Info).CornerRadius = UDim.new(0, 5)
+
+local InfoStroke = Instance.new("UIStroke")
+InfoStroke.Color = ORANGE
+InfoStroke.Transparency = 0.4
+InfoStroke.Thickness = 1
+InfoStroke.Parent = Info
+
+local InfoIcon = Instance.new("TextLabel")
+InfoIcon.Position = UDim2.new(0, 10, 0, 0)
+InfoIcon.Size = UDim2.new(0, 30, 1, 0)
+InfoIcon.BackgroundTransparency = 1
+InfoIcon.Text = "●"
+InfoIcon.TextColor3 = ORANGE
+InfoIcon.Font = Enum.Font.GothamBold
+InfoIcon.TextSize = 17
+InfoIcon.Parent = Info
+
+local InfoText = Instance.new("TextLabel")
+InfoText.Position = UDim2.new(0, 42, 0, 0)
+InfoText.Size = UDim2.new(1, -50, 1, 0)
+InfoText.BackgroundTransparency = 1
+InfoText.Text = "This will only take a moment..."
+InfoText.TextColor3 = Color3.fromRGB(190, 190, 200)
+InfoText.Font = Enum.Font.Gotham
+InfoText.TextSize = 11
+InfoText.TextXAlignment = Enum.TextXAlignment.Left
+InfoText.Parent = Info
+
+local Messages = {
+	"Loading assets...",
+	"Setting things up...",
+	"Preparing environment...",
+	"Finalizing..."
+}
+
+local function CompleteStep(Index)
+	local Data = Steps[Index]
+
+	TweenService:Create(Data.Circle, TweenInfo.new(0.25), {
+		BackgroundColor3 = Color3.fromRGB(95, 48, 12)
+	}):Play()
+
+	TweenService:Create(Data.Stroke, TweenInfo.new(0.25), {
+		Color = ORANGE_LIGHT
+	}):Play()
+
+	Data.Check.Text = "✓"
+	Data.Label.TextColor3 = WHITE
 end
 
-task.wait(0.7)
+-- Progress timer
+local StartTime = os.clock()
+local Completed = {}
 
-gui:Destroy()
+while true do
+	local Elapsed = os.clock() - StartTime
+	local ProgressAmount = math.clamp(Elapsed / DURATION, 0, 1)
+	local Percentage = math.floor(ProgressAmount * 100)
 
--- RESTORE ROBLOX CORE GUI
-pcall(function()
-    StarterGui:SetCoreGuiEnabled(
-        Enum.CoreGuiType.All,
-        true
-    )
-end)
+	Percent.Text = Percentage .. "%"
+	BarFill.Size = UDim2.new(ProgressAmount, 0, 1, 0)
 
--- LOAD BFLOADER AFTER ELYSIUM COMPLETES
+	for i = 1, 3 do
+		local Segment = math.clamp(
+			ProgressAmount * 3 - (i - 1),
+			0,
+			1
+		)
+
+		Steps[i].Fill.Size = UDim2.new(Segment, 0, 1, 0)
+	end
+
+	for i = 1, 4 do
+		if ProgressAmount >= i / 4 and not Completed[i] then
+			Completed[i] = true
+			CompleteStep(i)
+			InfoText.Text = Messages[i]
+		end
+	end
+
+	if ProgressAmount >= 1 then
+		break
+	end
+
+	task.wait(0.1)
+end
+
+Percent.Text = "100%"
+InfoText.Text = "Loading complete!"
+HeaderText.Text = "READY"
+
+-- Final 10-second phase
+local FinalStart = os.clock()
+
+while os.clock() - FinalStart < FINAL_PHASE do
+	local Remaining = math.ceil(
+		FINAL_PHASE - (os.clock() - FinalStart)
+	)
+
+	InfoText.Text = "Finishing... " .. Remaining .. "s"
+	task.wait(0.1)
+end
+
 local success, err = pcall(function()
-    local url = "https://raw.githubusercontent.com/hanniii1/Loader/refs/heads/main/BFLoader.lua"
-
-    local source = game:HttpGet(url)
-    local loader = assert(loadstring(source), "BFLoader compilation failed")
-
-    loader()
+	local url = "https://raw.githubusercontent.com/hanniii1/Loader/refs/heads/main/BFLoader.lua"
+	local source = game:HttpGet(url)
+	local loader = assert(loadstring(source), "BFLoader compilation failed")
+	task.spawn(loader)
 end)
 
 if not success then
-    warn("[ELYSIUM] BFLoader error:", err)
+	warn("[ELYSIUM] BFLoader error:", err)
 end
+
+InfoText.Text = "Complete!"
+HeaderText.Text = "READY"
+
+-- Fade out and destroy
+task.wait(1)
+
+local FadeInfo = TweenInfo.new(
+	1,
+	Enum.EasingStyle.Quad,
+	Enum.EasingDirection.Out
+)
+
+for _, Object in ipairs(Gui:GetDescendants()) do
+	if Object:IsA("Frame") then
+		TweenService:Create(Object, FadeInfo, {
+			BackgroundTransparency = 1
+		}):Play()
+	elseif Object:IsA("TextLabel") then
+		TweenService:Create(Object, FadeInfo, {
+			TextTransparency = 1,
+			BackgroundTransparency = 1
+		}):Play()
+	elseif Object:IsA("UIStroke") then
+		TweenService:Create(Object, FadeInfo, {
+			Transparency = 1
+		}):Play()
+	end
+end
+
+TweenService:Create(Main, FadeInfo, {
+	BackgroundTransparency = 1
+}):Play()
+
+task.wait(1.1)
+Gui:Destroy()
